@@ -1,6 +1,6 @@
 {
   "name": "@puresamari/spb-dev-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A simple build tool for quick website development.",
   "main": "./lib/lib.js",
   "scripts": {

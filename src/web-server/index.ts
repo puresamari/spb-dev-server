@@ -18,8 +18,8 @@ const log = console.log;
 export class WebServer {
 
   private readonly templates = {
-    reload: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/reload.pug'), 'utf-8') ),
-    404: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/404.pug'), 'utf-8') ),
+    reload: pug.compile(fs.readFileSync(path.resolve(__dirname, '../templates/reload.pug'), 'utf-8') ),
+    404: pug.compile(fs.readFileSync(path.resolve(__dirname, '../templates/404.pug'), 'utf-8') ),
   }
 
   public webserver?: http.Server;

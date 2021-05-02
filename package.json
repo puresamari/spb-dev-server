@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon",
     "create": "npm run build && npm run test",
-    "build": "rm -rf lib && tsc -p .",
+    "build": "rm -rf lib && tsc -p . && cp -r src/web-server/templates lib/web-server",
     "test": "echo TODO: Create tests",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "prepublish": "npm run build && npm run test"

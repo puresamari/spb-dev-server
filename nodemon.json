@@ -1,0 +1,10 @@
+{
+  "watch": [
+    "src"
+  ],
+  "ext": "ts",
+  "ignore": [
+    "*.spec.ts"
+  ],
+  "exec": "echo TODO: Somehow build testing stuff"
+}

@@ -1,0 +1,21 @@
+h1 Spb status page
+
+h3 Files
+
+ul
+  each file in files
+    li
+      | #{file[1].file} becomes 
+      a(href='/' + file[0])
+        | #{file[0]}
+
+script(type="text/javascript").
+  var connection = new WebSocket('#{websocketUrl}');
+
+  connection.addEventListener('message', function (event) {
+    switch (event.data) {
+      case 'reload':
+        window.location.href = window.location.href;
+        return;
+    }
+  });

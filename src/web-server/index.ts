@@ -18,8 +18,9 @@ const log = console.log;
 export class WebServer {
 
   private readonly templates = {
-    reload: pug.compile(fs.readFileSync(path.resolve(__dirname, '../templates/reload.pug'), 'utf-8') ),
-    404: pug.compile(fs.readFileSync(path.resolve(__dirname, '../templates/404.pug'), 'utf-8') ),
+    reload: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/reload.pug'), 'utf-8') ),
+    status: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/status.pug'), 'utf-8') ),
+    404: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/404.pug'), 'utf-8') ),
   }
 
   public webserver?: http.Server;
@@ -63,7 +64,6 @@ export class WebServer {
     },
   ) {
 
-
     this.filesSub = filesObservable.subscribe(v => {
       this.files = FilesMap.fromDynamic(v);
     });
@@ -81,6 +81,15 @@ export class WebServer {
     })
     
     this.webserver = http.createServer((req, res) => {
+
+      if (req.url === '/spb-status') {
+        res.end(this.templates.status({
+          url: req.url,
+          files: [...this.files?.keys() || []].map(v => [v, this.files?.get(v)]),
+          websocketUrl: this.WebSocketURL
+        }));
+        return;
+      }
       
       if (!this.files?.has(req.url?.slice(1))) {
         res.writeHead(404);
@@ -115,6 +124,7 @@ export class WebServer {
 Starded development servers 
   http: ${chalk.blue(this.ServerURL)}
   ws:   ${chalk.blue(this.WebSocketURL)}
+  home: ${chalk.blue(this.ServerURL + '/spb-status')}
 `);
   }
 

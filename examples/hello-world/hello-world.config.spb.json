@@ -1,0 +1,24 @@
+{
+  "$schema": "../../lib/config.schema.json",
+  "root": "./src/",
+  "files": [
+    "./index.pug",
+    "./views/*.pug",
+    "./views-twig/index-twig.twig",
+    "./main.ts",
+    "./testjs.js",
+    "./styles.css",
+    "./styles-scss.scss",
+    "./images/*"
+  ],
+  "output": "./dist/test/test/dist/test",
+  "compilers": {
+    "postcss": {
+      "plugins": [
+        "tailwindcss",
+        "autoprefixer"
+      ]
+    }
+  },
+  "postBuild": "echo 'Post BUILD'"
+}

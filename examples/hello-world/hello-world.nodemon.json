@@ -1,0 +1,13 @@
+{
+  "watch": [
+    "src",
+    "examples/hello-world/hello-world.test.ts",
+    "examples/hello-world/hello-world.config.spb.json",
+    "examples/hello-world/hello-world.nodemon.json"
+  ],
+  "ext": ["ts", ".pug"],
+  "ignore": [
+    "*.spec.ts"
+  ],
+  "exec": "npx ts-node examples/hello-world/hello-world.test.ts"
+}

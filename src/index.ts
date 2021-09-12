@@ -102,22 +102,6 @@ export class DevServer {
   private async start() {
     this.watcherSub = this.builder.ContextFiles.subscribe(
       async (contextFiles) => {
-        log("Watching files");
-        contextFiles
-          .map(({ files, source }) =>
-            chalk.underline.blue(
-              `${this.getRelativeSourceFileName(source)}${
-                files.length > 0
-                  ? chalk.cyan` \n    watched through context (require or import):\n     - ${files
-                      .map((file) => this.getRelativeSourceFileName(file))
-                      .join("\n     - ")}`
-                  : ""
-              }`
-            )
-          )
-          .forEach((v) => log("  " + v));
-        log("");
-
         this.watchers.forEach((watcher) => {
           watcher.close();
         });

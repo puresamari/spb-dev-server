@@ -10,4 +10,6 @@ const config = getConfigFromFile(configPath);
 
 // builder.build().then(() => console.log('built!!'));
 
-const devServer = new DevServer({ config: configPath }, config);
+const devServer = new DevServer({ config: configPath }, config, {
+  host: '192.168.3.163'
+});

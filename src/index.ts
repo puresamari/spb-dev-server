@@ -8,7 +8,7 @@ import path from 'path';
 import { Subscription } from 'rxjs';
 
 import { CompilationMap, CompilationStatus } from './compilation-map';
-import { WebServer } from './web-server';
+import { IDevServerOptions, WebServer } from './web-server';
 
 const log = console.log;
 
@@ -22,14 +22,25 @@ export class DevServer {
 
   private readonly files: CompilationMap;
 
+  public readonly devServerOptions: IDevServerOptions;
+
   constructor(
     process: IMainProcessOptions,
     public readonly options: IBuilderOptions,
-    public readonly devServerOptions = {
-      port: 5678,
-      socketPort: 5679,
-    }
+    {
+      host = 'localhost',
+      port = 5678,
+      socketPort = 5679,
+      secure = false
+    }: Partial<IDevServerOptions> = {}
   ) {
+    this.devServerOptions = {
+      secure,
+      host,
+      port,
+      socketPort,
+    };
+
     const dir = path.dirname(resolveFilePathOnBase(process.config));
     const output = path.join(dir, options.root || '');
     this.builder = new Builder(
@@ -44,7 +55,7 @@ export class DevServer {
 
     this.files = new CompilationMap(options);
 
-    this.webSever = new WebServer(options, this.Files, devServerOptions);
+    this.webSever = new WebServer(options, this.Files, this.devServerOptions);
 
     this.start();
   }

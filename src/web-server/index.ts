@@ -13,14 +13,21 @@ import WebSocket from 'ws';
 import { IDynamicCompilerResult } from './../compilation-map';
 import { FilesMap } from './files-map';
 
+export interface IDevServerOptions {
+  secure: boolean;
+  host: string;
+  port: number;
+  socketPort: number;
+}
+
 const log = console.log;
 
 export class WebServer {
 
   private readonly templates = {
-    reload: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/reload.pug'), 'utf-8') ),
-    status: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/status.pug'), 'utf-8') ),
-    404: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/404.pug'), 'utf-8') ),
+    reload: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/reload.pug'), 'utf-8')),
+    status: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/status.pug'), 'utf-8')),
+    404: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/404.pug'), 'utf-8')),
   }
 
   public webserver?: http.Server;
@@ -29,8 +36,8 @@ export class WebServer {
   private filesSub?: Subscription;
   private statusSub?: Subscription;
 
-  public get ServerURL() { return `http://localhost:${this.devServerOptions.port}`; }
-  public get WebSocketURL() { return `ws://localhost:${this.devServerOptions.socketPort}`; }
+  public get ServerURL() { return `http${this.devServerOptions.secure ? 's' : ''}://${this.devServerOptions.host}:${this.devServerOptions.port}`; }
+  public get WebSocketURL() { return `ws${this.devServerOptions.secure ? 's' : ''}://${this.devServerOptions.host}:${this.devServerOptions.socketPort}`; }
 
   private files?: FilesMap;
 
@@ -39,17 +46,17 @@ export class WebServer {
     if (v.type === 'html') {
       output += this.templates.reload({ websocketUrl: this.WebSocketURL });
     }
-    
-    return {...v, output};
+
+    return { ...v, output };
   }
 
   public getHeaders(type: ExportType): OutgoingHttpHeaders | undefined {
     switch (type) {
       case 'svg':
-        return {'content-type':'image/svg+xml'};
+        return { 'content-type': 'image/svg+xml' };
       case 'png':
       case 'jpg':
-        return {'content-type':'image/' + type};
+        return { 'content-type': 'image/' + type };
       default:
         return undefined;
     }
@@ -58,16 +65,13 @@ export class WebServer {
   constructor(
     public readonly options: IBuilderOptions,
     readonly filesObservable: Observable<Map<string, IDynamicCompilerResult>>,
-    public readonly devServerOptions = {
-      port: 5678,
-      socketPort: 5679
-    },
+    public readonly devServerOptions: IDevServerOptions
   ) {
 
     this.filesSub = filesObservable.subscribe(v => {
       this.files = FilesMap.fromDynamic(v);
     });
-    
+
     let statusBefore: 'compiling' | 'reload' | null = null;
     this.statusSub = filesObservable.pipe(
       map(v => [...v.values()].find(e => e.compilationStatus === 0) ? 'compiling' : 'reload'),
@@ -79,7 +83,7 @@ export class WebServer {
         this.send(v);
       }
     })
-    
+
     this.webserver = http.createServer((req, res) => {
 
       if (req.url === '/spb-status') {
@@ -90,7 +94,7 @@ export class WebServer {
         }));
         return;
       }
-      
+
       if (!this.files?.has(req.url?.slice(1))) {
         res.writeHead(404);
         res.end(this.templates[404]({
@@ -108,9 +112,9 @@ export class WebServer {
     });
 
     this.webserver.listen(this.devServerOptions.port);
-    
+
     this.websocket = new WebSocket.Server({ port: this.devServerOptions.socketPort });
-    
+
     let index = 0;
     this.websocket.on('connection', (ws) => {
       index += 1;
@@ -131,7 +135,7 @@ Starded development servers
   private sockets = new Map<string, WebSocket>();
 
   private async send(message: string) {
-    [ ...this.sockets.values() ].forEach(socket => socket.send(message));
+    [...this.sockets.values()].forEach(socket => socket.send(message));
   }
 
 

@@ -5,7 +5,7 @@
     "examples/hello-world/hello-world.config.spb.json",
     "examples/hello-world/hello-world.nodemon.json"
   ],
-  "ext": ["ts", ".pug"],
+  "ext": "ts",
   "ignore": [
     "*.spec.ts"
   ],

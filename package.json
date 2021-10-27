@@ -1,12 +1,12 @@
 {
   "name": "@puresamari/spb-dev-server",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A simple build tool for quick website development.",
   "main": "./lib/lib.js",
   "scripts": {
     "start": "nodemon --config examples/hello-world/hello-world.nodemon.json",
     "create": "npm run build && npm run test",
-    "build": "rm -rf lib && tsc -p ./src && cp -r src/web-server/templates lib/web-server",
+    "build": "rm -rf lib && tsc -p ./src && cp -r src/server/templates lib/server",
     "test": "echo TODO: Create tests",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "prepublish": "npm run build && npm run test"

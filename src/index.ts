@@ -1,20 +1,22 @@
 import { Builder, IBuilderOptions, IMainProcessOptions, resolveFilePathOnBase } from '@puresamari/spb-core';
 import { ExportType } from '@puresamari/spb-core/lib/builders/utils';
-
-// TODO: Remove chalk, should be used in the cli exclusively
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
 import { Subscription } from 'rxjs';
 
 import { CompilationMap, CompilationStatus } from './compilation-map';
-import { IDevServerOptions, WebServer } from './web-server';
+import { IDevServerOptions } from './definitions';
+import { Server } from './server';
+import { Socket } from './socket';
 
+// TODO: Remove chalk, should be used in the cli exclusively
 const log = console.log;
 
 export class DevServer {
   private readonly builder: Builder;
-  public readonly webSever?: WebServer;
+  public readonly server?: Server;
+  public readonly socket?: Socket;
 
   private watcherSub?: Subscription;
 
@@ -55,8 +57,9 @@ export class DevServer {
 
     this.files = new CompilationMap(options);
 
-    this.webSever = new WebServer(options, this.Files, this.devServerOptions);
-
+    this.socket = new Socket(options, this.Files, this.devServerOptions);
+    this.server = new Server(options, this.Files, this.devServerOptions, this.socket.WebSocketURL);
+    
     this.start();
   }
 
@@ -96,14 +99,14 @@ export class DevServer {
     if (fileOutput) {
       this.files.patchFile(eFile, {
         ...fileOutput,
-        output: this.webSever?.processFile(result).output || result.output,
+        output: this.server?.processFile(result).output || result.output,
         compilationStatus: CompilationStatus.Compiled,
         changeAmount: fileOutput.changeAmount,
       });
     } else {
       this.files.patchFile(eFile, {
         ...result,
-        output: this.webSever?.processFile(result).output || result.output,
+        output: this.server?.processFile(result).output || result.output,
         compilationStatus: CompilationStatus.Compiled,
         changeAmount: 1,
       });
@@ -134,10 +137,20 @@ export class DevServer {
         });
       }
     );
+
+    log(`
+Starded development servers 
+  http: ${chalk.blue(this.server?.ServerURL)}
+  ws:   ${chalk.blue(this.socket?.WebSocketURL)}
+  home: ${chalk.blue(this.server?.ServerURL + '/spb-status')}
+`);
   }
 
   public async destroy() {
     this.watcherSub?.unsubscribe();
-    return this.webSever!.destroy();
+    this.server?.destroy();
+    this.socket?.destroy();
   }
 }
+
+export { IDevServerOptions };

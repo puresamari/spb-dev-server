@@ -1,28 +1,20 @@
 import { IBuilderOptions } from '@puresamari/spb-core';
 import { CompilerResult } from '@puresamari/spb-core/lib/builders/compilers/definitions';
 import { ExportType } from '@puresamari/spb-core/lib/builders/utils';
-import chalk from 'chalk';
 import fs from 'fs';
-import http, { OutgoingHttpHeaders } from 'http';
+import { OutgoingHttpHeaders } from 'http';
 import path from 'path';
 import pug from 'pug';
-import { from, Observable, Subscription } from 'rxjs';
+import { from, Observable, of, Subscription } from 'rxjs';
 import { filter, map, tap } from 'rxjs/operators';
 import WebSocket from 'ws';
 
-import { IDynamicCompilerResult } from './../compilation-map';
+import { IDynamicCompilerResult } from '../compilation-map';
+import { IDevServerOptions } from './../definitions';
 import { FilesMap } from './files-map';
+import { GenerateWebServer, WebServer } from './utils';
 
-export interface IDevServerOptions {
-  secure: boolean;
-  host: string;
-  port: number;
-  socketPort: number;
-}
-
-const log = console.log;
-
-export class WebServer {
+export class Server {
 
   private readonly templates = {
     reload: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/reload.pug'), 'utf-8')),
@@ -30,21 +22,19 @@ export class WebServer {
     404: pug.compile(fs.readFileSync(path.resolve(__dirname, 'templates/404.pug'), 'utf-8')),
   }
 
-  public webserver?: http.Server;
-  public websocket?: WebSocket.Server;
+  private webserver?: WebServer;
 
   private filesSub?: Subscription;
   private statusSub?: Subscription;
 
   public get ServerURL() { return `http${this.devServerOptions.secure ? 's' : ''}://${this.devServerOptions.host}:${this.devServerOptions.port}`; }
-  public get WebSocketURL() { return `ws${this.devServerOptions.secure ? 's' : ''}://${this.devServerOptions.host}:${this.devServerOptions.socketPort}`; }
 
   private files?: FilesMap;
 
   public processFile({ output, ...v }: CompilerResult): CompilerResult {
 
     if (v.type === 'html') {
-      output += this.templates.reload({ websocketUrl: this.WebSocketURL });
+      output += this.templates.reload({ websocketUrl: this.webSocketURL });
     }
 
     return { ...v, output };
@@ -65,8 +55,10 @@ export class WebServer {
   constructor(
     public readonly options: IBuilderOptions,
     readonly filesObservable: Observable<Map<string, IDynamicCompilerResult>>,
-    public readonly devServerOptions: IDevServerOptions
+    public readonly devServerOptions: IDevServerOptions,
+    private readonly webSocketURL: string
   ) {
+    this.launch();
 
     this.filesSub = filesObservable.subscribe(v => {
       this.files = FilesMap.fromDynamic(v);
@@ -82,15 +74,17 @@ export class WebServer {
       if (v) {
         this.send(v);
       }
-    })
+    });
+    
+  }
 
-    this.webserver = http.createServer((req, res) => {
-
+  async launch() {
+    this.webserver = await GenerateWebServer(this.devServerOptions, (req, res) => {
       if (req.url === '/spb-status') {
         res.end(this.templates.status({
           url: req.url,
           files: [...this.files?.keys() || []].map(v => [v, this.files?.get(v)]),
-          websocketUrl: this.WebSocketURL
+          websocketUrl: this.webSocketURL
         }));
         return;
       }
@@ -110,26 +104,6 @@ export class WebServer {
       res.writeHead(200, this.getHeaders(requestedFile.type));
       res.end(requestedFile.output);
     });
-
-    this.webserver.listen(this.devServerOptions.port);
-
-    this.websocket = new WebSocket.Server({ port: this.devServerOptions.socketPort });
-
-    let index = 0;
-    this.websocket.on('connection', (ws) => {
-      index += 1;
-      this.sockets.set('' + index, ws);
-      ws.on('close', () => {
-        this.sockets.delete('' + index);
-      });
-    });
-
-    log(`
-Starded development servers 
-  http: ${chalk.blue(this.ServerURL)}
-  ws:   ${chalk.blue(this.WebSocketURL)}
-  home: ${chalk.blue(this.ServerURL + '/spb-status')}
-`);
   }
 
   private sockets = new Map<string, WebSocket>();
@@ -144,34 +118,8 @@ Starded development servers
     this.filesSub?.unsubscribe();
     this.statusSub?.unsubscribe();
 
-    let closed: { [key: string]: boolean } = {};
+    if (!this.webserver) { return of(); }
 
-    if (this.webserver) { closed['webserver'] = false; }
-    if (this.websocket) { closed['websocket'] = false; }
-
-    const promi = new Promise(resolve => {
-      const check = () => {
-        if (Object.values(closed).filter(v => !!v).length === 0) { resolve(null); }
-      }
-
-      if (this.webserver) {
-        this.webserver?.close(() => {
-          closed['webserver'] = true;
-          check();
-        });
-      }
-
-      if (this.websocket) {
-        this.websocket?.close(() => {
-          closed['websocket'] = true;
-          check();
-        });
-      }
-
-      check();
-    });
-
-
-    return from(promi).pipe();
+    return from(new Promise<void>(resolve => this.webserver?.close(() => resolve()))).pipe();
   }
 }

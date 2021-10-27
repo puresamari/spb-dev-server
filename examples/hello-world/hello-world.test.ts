@@ -6,10 +6,7 @@ import { DevServer } from '../../src';
 const configPath = path.resolve(__dirname, './hello-world.config.spb.json');
 const config = getConfigFromFile(configPath);
 
-// const builder = new Builder(config, path.dirname(configPath));
-
-// builder.build().then(() => console.log('built!!'));
-
 const devServer = new DevServer({ config: configPath }, config, {
-  host: '192.168.3.163'
+  host: process.env.DEBUG_HOST || 'localhost',
+  secure: true
 });
